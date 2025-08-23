@@ -1,0 +1,68 @@
+previews:
+  generation: automatic
+
+services:
+  # -------- Web (Next.js) --------
+  - type: web
+    name: cookbook-web
+    runtime: node
+    plan: starter
+    region: oregon
+    rootDir: apps/web
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: NEXT_PUBLIC_API_URL
+        value: https://cookbook-api.onrender.com
+      - key: AUTH0_SECRET
+        sync: false
+      - key: AUTH0_BASE_URL
+        value: https://cookbook-web.onrender.com
+      - key: AUTH0_ISSUER_BASE_URL
+        sync: false
+      - key: AUTH0_CLIENT_ID
+        sync: false
+      - key: AUTH0_CLIENT_SECRET
+        sync: false
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+
+  # -------- API (FastAPI) --------
+  - type: web
+    name: cookbook-api
+    runtime: docker
+    plan: starter
+    region: oregon
+    rootDir: apps/api
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: cookbook-db
+          property: connectionString
+      - key: CORS_ORIGINS
+        value: https://cookbook-web.onrender.com
+      - key: AUTH0_DOMAIN
+        sync: false
+      - key: AUTH0_AUDIENCE
+        sync: false
+      - key: FILES_DIR
+        value: /data/uploads
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GOOGLE_VISION_KEY
+        sync: false
+    disk:
+      name: uploads
+      mountPath: /data/uploads
+      sizeGB: 5
+
+databases:
+  - name: cookbook-db
+    plan: starter
+    diskSizeGB: 10
+
+

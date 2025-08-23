@@ -1,0 +1,3 @@
+{ "compilerOptions": { "target": "ES2020", "module": "ESNext", "moduleResolution": "bundler", "jsx": "react-jsx", "jsxImportSource": "react", "strict": true, "skipLibCheck": true, "baseUrl": ".", "paths": {}, "types": ["vitest/globals","node","@testing-library/jest-dom"] } }
+
+

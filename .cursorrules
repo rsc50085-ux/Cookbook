@@ -1,0 +1,5 @@
+- Always run tests before suggesting code changes: npm run ci in apps/web, pytest in apps/api.
+- Keep secrets out of code; use Render env vars from render.yaml.
+- For Auth0, follow SETUP in README exactly. Do not modify SDK wiring.
+- Prefer minimal changes; do not add new services. Keep PDF with ReportLab only.
+

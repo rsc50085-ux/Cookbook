@@ -1,0 +1,26 @@
+{
+  "name": "cookbook-web",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "test": "vitest run --coverage",
+    "ci": "tsc --noEmit && vitest run --reporter=dot"
+  },
+  "dependencies": {
+    "@auth0/nextjs-auth0": "^4.9.0",
+    "next": "14.2.25",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/react": "^14.3.1",
+    "@types/node": "^22.17.2",
+    "jsdom": "^25.0.0",
+    "typescript": "^5.6.2",
+    "undici-types": "^7.15.0",
+    "vitest": "^2.0.5"
+  }
+}
