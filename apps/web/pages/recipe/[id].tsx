@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import { useUser, getAccessToken } from "@auth0/nextjs-auth0";
+import { useUser } from "@auth0/nextjs-auth0/client";
 import { apiGet, apiPost } from "../../lib/api";
 
 export default function RecipeView() {
@@ -12,8 +12,7 @@ export default function RecipeView() {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const token = (await (getAccessToken() as any))?.accessToken;
-      const data = await apiGet<any>(`/recipes/${id}`, token);
+      const data = await apiGet<any>(`/recipes/${id}`);
       setR(data);
     })().catch(console.error);
   }, [id]);
@@ -28,8 +27,7 @@ export default function RecipeView() {
       <h3>Instructions</h3>
       <ol>{(r.instructions ?? []).map((s:string,i:number)=><li key={i}>{s}</li>)}</ol>
       {user && <button onClick={async ()=>{
-        const token = (await (getAccessToken() as any))?.accessToken;
-        const out = await apiPost<{url:string}>(`/recipes/${id}/export-pdf`, { style: "minimal" }, token);
+        const out = await apiPost<{url:string}>(`/recipes/${id}/export-pdf`, { style: "minimal" }, "");
         window.open(out.url, "_blank");
       }}>Export PDF</button>}
     </main>

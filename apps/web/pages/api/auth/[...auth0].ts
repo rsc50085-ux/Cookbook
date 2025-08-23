@@ -1,6 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  res.status(501).json({ error: "Auth route is configured in production" });
-}
+import { handleAuth } from "@auth0/nextjs-auth0";
+export default handleAuth();
 
 

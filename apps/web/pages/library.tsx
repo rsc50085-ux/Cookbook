@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useUser, getAccessToken } from "@auth0/nextjs-auth0";
+import { useUser } from "@auth0/nextjs-auth0/client";
 import { apiGet } from "../lib/api";
 
 type Recipe = { id: string; title: string; servings: number };
@@ -10,8 +10,7 @@ export default function Library() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const token = (await (getAccessToken() as any))?.accessToken;
-      const data = await apiGet<Recipe[]>("/recipes", token);
+      const data = await apiGet<Recipe[]>("/recipes");
       setRecipes(data);
     })().catch(console.error);
   }, [user]);
