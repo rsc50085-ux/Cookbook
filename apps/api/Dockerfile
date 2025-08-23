@@ -6,8 +6,9 @@ COPY pyproject.toml /app/
 RUN uv pip compile pyproject.toml -o requirements.txt
 RUN uv pip sync requirements.txt
 COPY app /app/app
-ENV PORT=8000 HOST=0.0.0.0
+ENV HOST=0.0.0.0
+# Render provides PORT env; default to 8000 locally
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
 
 
