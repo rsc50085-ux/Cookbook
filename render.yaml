@@ -1,6 +1,3 @@
-previews:
-  generation: automatic
-
 services:
   # -------- Web (Next.js) --------
   - type: web
@@ -62,7 +59,6 @@ services:
 
 databases:
   - name: cookbook-db
-    plan: starter
-    diskSizeGB: 10
+    plan: basic-256mb
 
 
