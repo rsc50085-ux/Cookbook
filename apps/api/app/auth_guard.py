@@ -2,7 +2,7 @@ import os, time, requests
 from fastapi import Depends, HTTPException, Request
 from authlib.jose import JsonWebToken, JsonWebKey
 
-TESTING = os.getenv("TESTING") == "1"
+TESTING = os.getenv("TESTING") == "1" or os.getenv("AUTH0_DOMAIN", "") == ""
 AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN", "")
 AUTH0_AUDIENCE = os.getenv("AUTH0_AUDIENCE", "")
 
