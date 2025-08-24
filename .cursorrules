@@ -3,3 +3,5 @@
 - For Auth0, follow SETUP in README exactly. Do not modify SDK wiring.
 - Prefer minimal changes; do not add new services. Keep PDF with ReportLab only.
 
+
+

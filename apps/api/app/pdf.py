@@ -1,9 +1,10 @@
-import os, uuid
+import os, uuid, logging, json
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.pdfgen import canvas
 
 FILES_DIR = os.getenv("FILES_DIR", "/tmp")
 os.makedirs(FILES_DIR, exist_ok=True)
+logger = logging.getLogger("cookbook.api.pdf")
 
 def export_recipe_pdf(recipe: dict, style: str="minimal", paper: str="Letter") -> str:
     filename = f"{uuid.uuid4()}.pdf"
@@ -34,6 +35,10 @@ def export_recipe_pdf(recipe: dict, style: str="minimal", paper: str="Letter") -
         if y < 72: c.showPage(); y = height - 72
 
     c.showPage(); c.save()
+    try:
+        logger.info(json.dumps({"level":"info","event":"pdf_export","recipe_title":recipe.get("title"),"filename":filename}))
+    except Exception:
+        pass
     return filename
 
 

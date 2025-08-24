@@ -12,7 +12,7 @@ export default function RecipeView() {
   useEffect(() => {
     if (!id) return;
     (async () => {
-      const data = await apiGet<any>(`/recipes/${id}`);
+      const data = await apiGet<any>(`/api/recipes/${id}`);
       setR(data);
     })().catch(console.error);
   }, [id]);
@@ -27,7 +27,7 @@ export default function RecipeView() {
       <h3>Instructions</h3>
       <ol>{(r.instructions ?? []).map((s:string,i:number)=><li key={i}>{s}</li>)}</ol>
       {user && <button onClick={async ()=>{
-        const out = await apiPost<{url:string}>(`/recipes/${id}/export-pdf`, { style: "minimal" }, "");
+        const out = await apiPost<{url:string}>(`/api/recipes/${id}/export-pdf`, { style: "minimal" });
         window.open(out.url, "_blank");
       }}>Export PDF</button>}
     </main>
