@@ -210,58 +210,184 @@ export default function Library() {
       <div style={{ margin: "12px 0" }}>
         <button 
           onClick={()=>{
-            setCreating(s=>!s);
+            setCreating(true);
             setEditing(null);
             resetForm();
           }} 
           style={{ padding: "8px 16px", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "16px" }}
         >
-          {creating?"Close":"+ Add New Recipe"}
+          + Add New Recipe
         </button>
       </div>
       {(creating || editing) && (
-        <div style={{ border:"1px solid #ccc", padding:12, maxWidth:720 }}>
-          <h3>{editing ? "Edit Recipe" : "Add New Recipe"}</h3>
-          <div style={{ marginBottom:8 }}>Title <input value={title} onChange={e=>setTitle(e.target.value)} style={{width:300}} /></div>
-          <div style={{ marginBottom:8 }}>Servings <input type="number" value={servings} onChange={e=>setServings(parseInt(e.target.value||"1",10))} style={{width:100}} /></div>
-          <div style={{ marginBottom:8 }}>Prep minutes <input type="number" value={prepMinutes as any} onChange={e=>setPrepMinutes(e.target.value===""?"":parseInt(e.target.value,10))} style={{width:120}} />
-            &nbsp; Cook minutes <input type="number" value={cookMinutes as any} onChange={e=>setCookMinutes(e.target.value===""?"":parseInt(e.target.value,10))} style={{width:120}} />
+        <div 
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "20px"
+          }}
+          onClick={() => {
+            setCreating(false);
+            setEditing(null);
+            resetForm();
+          }}
+        >
+          <div 
+            style={{
+              backgroundColor: "white",
+              borderRadius: "8px",
+              padding: "24px",
+              maxWidth: "800px",
+              width: "100%",
+              maxHeight: "90vh",
+              overflowY: "auto",
+              boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)"
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h3 style={{ margin: 0, fontSize: "24px" }}>{editing ? "Edit Recipe" : "Add New Recipe"}</h3>
+              <button
+                onClick={() => {
+                  setCreating(false);
+                  setEditing(null);
+                  resetForm();
+                }}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#666",
+                  padding: "4px"
+                }}
+              >
+                ×
+              </button>
+            </div>
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Title</label>
+            <input 
+              value={title} 
+              onChange={e=>setTitle(e.target.value)} 
+              style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }} 
+            />
           </div>
-          <div style={{ marginBottom:8 }}>
-            Cuisine 
-            <select value={cuisine} onChange={e=>setCuisine(e.target.value)} style={{width:200, marginLeft:8}}>
-              <option value="">Select cuisine...</option>
-              {CUISINES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-            &nbsp; Meal type 
-            <select value={mealType} onChange={e=>setMealType(e.target.value)} style={{width:200, marginLeft:8}}>
-              <option value="">Select meal type...</option>
-              {MEAL_TYPES.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
+          
+          <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Servings</label>
+              <input 
+                type="number" 
+                value={servings} 
+                onChange={e=>setServings(parseInt(e.target.value||"1",10))} 
+                style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }} 
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Prep minutes</label>
+              <input 
+                type="number" 
+                value={prepMinutes as any} 
+                onChange={e=>setPrepMinutes(e.target.value===""?"":parseInt(e.target.value,10))} 
+                style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }} 
+              />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Cook minutes</label>
+              <input 
+                type="number" 
+                value={cookMinutes as any} 
+                onChange={e=>setCookMinutes(e.target.value===""?"":parseInt(e.target.value,10))} 
+                style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }} 
+              />
+            </div>
           </div>
-          <div style={{ marginBottom:8 }}>
-            Recipe Photo 
+          <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Cuisine</label>
+              <select 
+                value={cuisine} 
+                onChange={e=>setCuisine(e.target.value)} 
+                style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }}
+              >
+                <option value="">Select cuisine...</option>
+                {CUISINES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Meal type</label>
+              <select 
+                value={mealType} 
+                onChange={e=>setMealType(e.target.value)} 
+                style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }}
+              >
+                <option value="">Select meal type...</option>
+                {MEAL_TYPES.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+          
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Recipe Photo</label>
             <input 
               type="file" 
               accept="image/*" 
               onChange={e => setPhotoFile(e.target.files?.[0] || null)} 
-              style={{marginLeft:8}}
+              style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }}
             />
-            {photoFile && <span style={{color:"#666", fontSize:"0.9em", marginLeft:8}}>Selected: {photoFile.name}</span>}
-            {photoUrl && !photoFile && <span style={{color:"#666", fontSize:"0.9em", marginLeft:8}}>Current photo will be kept</span>}
+            {photoFile && <span style={{color:"#666", fontSize:"0.9em", marginTop: "4px", display: "block"}}>Selected: {photoFile.name}</span>}
+            {photoUrl && !photoFile && <span style={{color:"#666", fontSize:"0.9em", marginTop: "4px", display: "block"}}>Current photo will be kept</span>}
           </div>
-          <div style={{ marginBottom:8 }}>Dietary tags <input value={tags} onChange={e=>setTags(e.target.value)} placeholder="comma-separated, e.g. vegetarian,gluten-free" style={{width:420}} /></div>
-          <div style={{ marginBottom:8 }}>Ingredients (one per line)
-            <br/>
-            <textarea value={ingredientsText} onChange={e=>setIngredientsText(e.target.value)} rows={6} cols={80} placeholder="2 cups flour\n1 tsp salt" />
+          
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Dietary tags</label>
+            <input 
+              value={tags} 
+              onChange={e=>setTags(e.target.value)} 
+              placeholder="comma-separated, e.g. vegetarian,gluten-free" 
+              style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }} 
+            />
           </div>
-          <div style={{ marginBottom:8 }}>Instructions (one step per line)
-            <br/>
-            <textarea value={instructionsText} onChange={e=>setInstructionsText(e.target.value)} rows={6} cols={80} placeholder="Preheat oven to 180C\nMix dry ingredients" />
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Ingredients (one per line)</label>
+            <textarea 
+              value={ingredientsText} 
+              onChange={e=>setIngredientsText(e.target.value)} 
+              rows={6} 
+              placeholder="2 cups flour&#10;1 tsp salt&#10;3 eggs"
+              style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd", fontFamily: "inherit", resize: "vertical" }}
+            />
           </div>
-          <div style={{ marginBottom:8 }}>Notes
-            <br/>
-            <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3} cols={80} />
+          
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Instructions (one step per line)</label>
+            <textarea 
+              value={instructionsText} 
+              onChange={e=>setInstructionsText(e.target.value)} 
+              rows={6} 
+              placeholder="Preheat oven to 180C&#10;Mix dry ingredients&#10;Add wet ingredients and mix"
+              style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd", fontFamily: "inherit", resize: "vertical" }}
+            />
+          </div>
+          
+          <div style={{ marginBottom: "24px" }}>
+            <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Notes</label>
+            <textarea 
+              value={notes} 
+              onChange={e=>setNotes(e.target.value)} 
+              rows={3} 
+              placeholder="Any additional notes or tips..."
+              style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd", fontFamily: "inherit", resize: "vertical" }}
+            />
           </div>
           <button 
             onClick={async ()=>{
@@ -316,21 +442,39 @@ export default function Library() {
               }
             }}
             disabled={uploading}
+            style={{
+              padding: "12px 24px",
+              backgroundColor: uploading ? "#ccc" : "#28a745",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              fontSize: "16px",
+              cursor: uploading ? "not-allowed" : "pointer",
+              marginRight: "12px"
+            }}
           >
-            {uploading ? "Uploading..." : editing ? "Update" : "Save"}
+            {uploading ? "Uploading..." : editing ? "Update Recipe" : "Save Recipe"}
           </button>
           
-          {editing && (
-            <button 
-              onClick={()=>{
-                setEditing(null);
-                resetForm();
-              }} 
-              style={{marginLeft:8}}
-            >
-              Cancel
-            </button>
-          )}
+          <button 
+            onClick={()=>{
+              setCreating(false);
+              setEditing(null);
+              resetForm();
+            }} 
+            style={{
+              padding: "12px 24px",
+              backgroundColor: "#6c757d",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              fontSize: "16px",
+              cursor: "pointer"
+            }}
+          >
+            Cancel
+          </button>
+          </div>
         </div>
       )}
       <div style={{marginTop:20}}>
