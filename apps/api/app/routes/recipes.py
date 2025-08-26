@@ -9,7 +9,20 @@ from ..pdf import export_recipe_pdf
 import uuid, os, shutil
 from pathlib import Path
 
-Base.metadata.create_all(bind=engine)
+# Ensure database schema is up to date
+try:
+    Base.metadata.create_all(bind=engine)
+    # Add photo_url column if it doesn't exist (migration)
+    from sqlalchemy import text
+    with engine.connect() as conn:
+        try:
+            conn.execute(text("ALTER TABLE recipes ADD COLUMN photo_url VARCHAR"))
+            conn.commit()
+        except Exception:
+            # Column already exists or other error, ignore
+            pass
+except Exception as e:
+    print(f"Database setup error: {e}")
 
 def get_db():
     db = SessionLocal()
@@ -34,9 +47,24 @@ def list_recipes(claims: dict = Depends(require_auth_dependency), db: Session = 
 
 @router.post("/recipes", response_model=RecipeOut)
 def create_recipe(payload: RecipeCreate, claims: dict = Depends(require_auth_dependency), db: Session = Depends(get_db)):
-    r = Recipe(owner_sub=claims["sub"], **payload.model_dump())
-    db.add(r); db.commit(); db.refresh(r)
-    return to_out(r)
+    import logging
+    logger = logging.getLogger("cookbook.api")
+    
+    try:
+        logger.info(f"Creating recipe for user {claims['sub']}")
+        logger.info(f"Recipe data: {payload.model_dump()}")
+        
+        r = Recipe(owner_sub=claims["sub"], **payload.model_dump())
+        db.add(r)
+        db.commit()
+        db.refresh(r)
+        
+        logger.info(f"Recipe created successfully with ID: {r.id}")
+        return to_out(r)
+    except Exception as e:
+        logger.error(f"Recipe creation failed: {str(e)}")
+        db.rollback()
+        raise HTTPException(500, f"Failed to create recipe: {str(e)}")
 
 @router.get("/recipes/{rid}", response_model=RecipeOut)
 def get_recipe(rid: str, claims: dict = Depends(require_auth_dependency), db: Session = Depends(get_db)):
@@ -47,16 +75,33 @@ def get_recipe(rid: str, claims: dict = Depends(require_auth_dependency), db: Se
 
 @router.put("/recipes/{rid}", response_model=RecipeOut)
 def update_recipe(rid: str, payload: RecipeCreate, claims: dict = Depends(require_auth_dependency), db: Session = Depends(get_db)):
-    r = db.get(Recipe, rid)
-    if not r or r.owner_sub != claims["sub"]:
-        raise HTTPException(404, "Not found")
+    import logging
+    logger = logging.getLogger("cookbook.api")
     
-    # Update all fields from payload
-    for field, value in payload.model_dump().items():
-        setattr(r, field, value)
-    
-    db.add(r); db.commit(); db.refresh(r)
-    return to_out(r)
+    try:
+        logger.info(f"Updating recipe {rid} for user {claims['sub']}")
+        logger.info(f"Update data: {payload.model_dump()}")
+        
+        r = db.get(Recipe, rid)
+        if not r or r.owner_sub != claims["sub"]:
+            raise HTTPException(404, "Not found")
+        
+        # Update all fields from payload
+        for field, value in payload.model_dump().items():
+            setattr(r, field, value)
+        
+        db.add(r)
+        db.commit()
+        db.refresh(r)
+        
+        logger.info(f"Recipe {rid} updated successfully")
+        return to_out(r)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Recipe update failed: {str(e)}")
+        db.rollback()
+        raise HTTPException(500, f"Failed to update recipe: {str(e)}")
 
 @router.post("/recipes/{rid}/export-pdf")
 def export_pdf(rid: str, body: dict, claims: dict = Depends(require_auth_dependency), db: Session = Depends(get_db)):
