@@ -35,12 +35,32 @@ export default function Library() {
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [ingredientsText, setIngredientsText] = useState("");
   const [instructionsText, setInstructionsText] = useState("");
   const resetForm = () => {
     setTitle(""); setServings(2); setPrepMinutes(""); setCookMinutes(""); 
     setCuisine(""); setMealType(""); setTags(""); setNotes(""); setPhotoUrl("");
-    setIngredientsText(""); setInstructionsText("");
+    setPhotoFile(null); setIngredientsText(""); setInstructionsText("");
+  };
+
+  const uploadPhoto = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const response = await fetch("/api/upload-photo", {
+      method: "POST",
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error);
+    }
+    
+    const data = await response.json();
+    return data.photo_url;
   };
 
   const loadRecipe = (recipe: Recipe) => {
@@ -102,7 +122,17 @@ export default function Library() {
               {MEAL_TYPES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
-          <div style={{ marginBottom:8 }}>Photo URL <input value={photoUrl} onChange={e=>setPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" style={{width:420}} /></div>
+          <div style={{ marginBottom:8 }}>
+            Recipe Photo 
+            <input 
+              type="file" 
+              accept="image/*" 
+              onChange={e => setPhotoFile(e.target.files?.[0] || null)} 
+              style={{marginLeft:8}}
+            />
+            {photoFile && <span style={{color:"#666", fontSize:"0.9em", marginLeft:8}}>Selected: {photoFile.name}</span>}
+            {photoUrl && !photoFile && <span style={{color:"#666", fontSize:"0.9em", marginLeft:8}}>Current photo will be kept</span>}
+          </div>
           <div style={{ marginBottom:8 }}>Dietary tags <input value={tags} onChange={e=>setTags(e.target.value)} placeholder="comma-separated, e.g. vegetarian,gluten-free" style={{width:420}} /></div>
           <div style={{ marginBottom:8 }}>Ingredients (one per line)
             <br/>
@@ -116,34 +146,52 @@ export default function Library() {
             <br/>
             <textarea value={notes} onChange={e=>setNotes(e.target.value)} rows={3} cols={80} />
           </div>
-          <button onClick={async ()=>{
-            try{
-              const payload: any = {
-                title,
-                servings,
-                prep_minutes: prepMinutes === "" ? undefined : prepMinutes,
-                cook_minutes: cookMinutes === "" ? undefined : cookMinutes,
-                cuisine: cuisine || undefined,
-                meal_type: mealType || undefined,
-                dietary_tags: tags.split(',').map(t=>t.trim()).filter(Boolean),
-                ingredients: ingredientsText.split('\n').map(l=>l.trim()).filter(Boolean),
-                instructions: instructionsText.split('\n').map(l=>l.trim()).filter(Boolean),
-                notes: notes || undefined,
-                photo_url: photoUrl || undefined,
-              };
-              
-              if (editing) {
-                const updated = await apiPut<Recipe>(`/api/recipes/${editing}`, payload);
-                setRecipes(recipes.map(r => r.id === editing ? updated : r));
-                setEditing(null);
-              } else {
-                const created = await apiPost<Recipe>("/api/recipes", payload);
-                setRecipes([created, ...recipes]);
-                setCreating(false);
+          <button 
+            onClick={async ()=>{
+              try{
+                setUploading(true);
+                
+                // Upload photo if a new file is selected
+                let finalPhotoUrl = photoUrl;
+                if (photoFile) {
+                  finalPhotoUrl = await uploadPhoto(photoFile);
+                }
+                
+                const payload: any = {
+                  title,
+                  servings,
+                  prep_minutes: prepMinutes === "" ? undefined : prepMinutes,
+                  cook_minutes: cookMinutes === "" ? undefined : cookMinutes,
+                  cuisine: cuisine || undefined,
+                  meal_type: mealType || undefined,
+                  dietary_tags: tags.split(',').map(t=>t.trim()).filter(Boolean),
+                  ingredients: ingredientsText.split('\n').map(l=>l.trim()).filter(Boolean),
+                  instructions: instructionsText.split('\n').map(l=>l.trim()).filter(Boolean),
+                  notes: notes || undefined,
+                  photo_url: finalPhotoUrl || undefined,
+                };
+                
+                if (editing) {
+                  const updated = await apiPut<Recipe>(`/api/recipes/${editing}`, payload);
+                  setRecipes(recipes.map(r => r.id === editing ? updated : r));
+                  setEditing(null);
+                } else {
+                  const created = await apiPost<Recipe>("/api/recipes", payload);
+                  setRecipes([created, ...recipes]);
+                  setCreating(false);
+                }
+                resetForm();
+              }catch(err){ 
+                console.error(err); 
+                alert(editing ? "Failed to update" : "Failed to create"); 
+              } finally {
+                setUploading(false);
               }
-              resetForm();
-            }catch(err){ console.error(err); alert(editing ? "Failed to update" : "Failed to create"); }
-          }}>{editing ? "Update" : "Save"}</button>
+            }}
+            disabled={uploading}
+          >
+            {uploading ? "Uploading..." : editing ? "Update" : "Save"}
+          </button>
           
           {editing && (
             <button 

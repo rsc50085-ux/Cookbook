@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 from ..db import SessionLocal, Base, engine
@@ -6,7 +6,8 @@ from ..models import Recipe
 from ..schemas import RecipeCreate, RecipeOut
 from ..auth_guard import require_auth_dependency
 from ..pdf import export_recipe_pdf
-import uuid, os
+import uuid, os, shutil
+from pathlib import Path
 
 Base.metadata.create_all(bind=engine)
 
@@ -65,6 +66,44 @@ def export_pdf(rid: str, body: dict, claims: dict = Depends(require_auth_depende
     filename = export_recipe_pdf(to_dict(r), style=body.get("style","minimal"), paper=body.get("paper","Letter"))
     base = os.getenv("FILES_DIR", "/tmp")
     return {"url": f"/files/{filename}", "path": f"{base}/{filename}"}
+
+@router.post("/upload-photo")
+async def upload_photo(file: UploadFile = File(...), claims: dict = Depends(require_auth_dependency)):
+    # Validate file type
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(400, "File must be an image")
+    
+    # Validate file size (max 5MB)
+    file_size = 0
+    content = await file.read()
+    file_size = len(content)
+    if file_size > 5 * 1024 * 1024:  # 5MB
+        raise HTTPException(400, "File too large (max 5MB)")
+    
+    # Generate unique filename
+    file_ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
+    filename = f"{uuid.uuid4().hex}.{file_ext}"
+    
+    # Save file
+    base_dir = os.getenv("FILES_DIR", "/tmp")
+    photos_dir = Path(base_dir) / "photos"
+    photos_dir.mkdir(exist_ok=True)
+    
+    file_path = photos_dir / filename
+    with open(file_path, "wb") as f:
+        f.write(content)
+    
+    return {"photo_url": f"/photos/{filename}"}
+
+@router.get("/photos/{filename}")
+def serve_photo(filename: str):
+    base = os.getenv("FILES_DIR", "/tmp")
+    path = os.path.join(base, "photos", filename)
+    if not os.path.exists(path): raise HTTPException(404, "Not found")
+    from fastapi.responses import FileResponse
+    import mimetypes
+    media_type = mimetypes.guess_type(path)[0] or "image/jpeg"
+    return FileResponse(path, media_type=media_type)
 
 @router.get("/files/{filename}")
 def serve_file(filename: str):
