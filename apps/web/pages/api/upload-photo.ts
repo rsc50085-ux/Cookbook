@@ -38,25 +38,20 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
       return res.status(401).json({ error: "No access token" });
     }
 
-    console.log("Parsing form data...");
+    // console.log("Parsing form data...");
     
     // Parse form data
     const form = formidable({});
     const [fields, files] = await form.parse(req);
     
-    console.log("Files received:", Object.keys(files));
+    // console.log("Files received:", Object.keys(files));
     
     const file = Array.isArray(files.file) ? files.file[0] : files.file;
     if (!file) {
-      console.log("No file in request");
       return res.status(400).json({ error: "No file provided" });
     }
 
-    console.log("File info:", {
-      size: file.size,
-      type: file.mimetype,
-      name: file.originalFilename
-    });
+    // console.log("File info:", { size: file.size, type: file.mimetype, name: file.originalFilename });
 
     // Validate file
     if (!file.mimetype?.startsWith("image/")) {
@@ -67,8 +62,6 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
       return res.status(400).json({ error: "File too large (max 5MB)" });
     }
 
-    console.log("Creating FormData with stream...");
-    
     // Create FormData using file stream (better for FastAPI)
     const FormData = require("form-data");
     const formData = new FormData();
@@ -78,8 +71,6 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
       filename: file.originalFilename || "upload.jpg",
       contentType: file.mimetype || "image/jpeg",
     });
-
-    console.log("Sending to API:", `${API}/upload-photo`);
 
     // Use node's https module for better compatibility
     const https = require("https");
@@ -98,13 +89,10 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
         },
       };
 
-      console.log("Request options:", options);
-
       const req = https.request(options, (res: any) => {
         let data = "";
         res.on("data", (chunk: any) => data += chunk);
         res.on("end", () => {
-          console.log("Raw response:", data);
           resolve({
             ok: res.statusCode >= 200 && res.statusCode < 300,
             status: res.statusCode,
@@ -115,28 +103,23 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
       });
       
       req.on("error", (error: any) => {
-        console.error("Request error:", error);
+        console.error("Photo upload request error:", error);
         reject(error);
       });
       
       formData.pipe(req);
     });
 
-    console.log("API response status:", response.status);
-    
     const responseText = await response.text();
-    console.log("API response text:", responseText);
     
     let data;
     try {
       data = JSON.parse(responseText);
     } catch {
-      console.log("Failed to parse response as JSON");
       return res.status(500).json({ error: "Invalid response from API", details: responseText });
     }
     
     if (!response.ok) {
-      console.log("API error:", data);
       return res.status(response.status).json(data);
     }
 
@@ -145,7 +128,6 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
       data.photo_url = `${API}${data.photo_url}`;
     }
 
-    console.log("Success:", data);
     return res.status(200).json(data);
   } catch (error: any) {
     console.error("Photo upload error:", error);

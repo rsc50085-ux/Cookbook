@@ -150,11 +150,14 @@ export default function Library() {
             onClick={async ()=>{
               try{
                 setUploading(true);
+                console.log("Starting recipe save process...");
                 
                 // Upload photo if a new file is selected
                 let finalPhotoUrl = photoUrl;
                 if (photoFile) {
+                  console.log("Uploading photo...");
                   finalPhotoUrl = await uploadPhoto(photoFile);
+                  console.log("Photo uploaded successfully:", finalPhotoUrl);
                 }
                 
                 const payload: any = {
@@ -171,19 +174,26 @@ export default function Library() {
                   photo_url: finalPhotoUrl || undefined,
                 };
                 
+                console.log("Recipe payload:", payload);
+                
                 if (editing) {
+                  console.log("Updating recipe:", editing);
                   const updated = await apiPut<Recipe>(`/api/recipes/${editing}`, payload);
+                  console.log("Recipe updated successfully:", updated);
                   setRecipes(recipes.map(r => r.id === editing ? updated : r));
                   setEditing(null);
                 } else {
+                  console.log("Creating new recipe...");
                   const created = await apiPost<Recipe>("/api/recipes", payload);
+                  console.log("Recipe created successfully:", created);
                   setRecipes([created, ...recipes]);
                   setCreating(false);
                 }
                 resetForm();
+                console.log("Recipe save process completed successfully");
               }catch(err){ 
-                console.error(err); 
-                alert(editing ? "Failed to update" : "Failed to create"); 
+                console.error("Recipe save error:", err); 
+                alert(editing ? "Failed to update recipe" : "Failed to create recipe"); 
               } finally {
                 setUploading(false);
               }
