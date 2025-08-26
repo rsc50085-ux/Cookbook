@@ -326,20 +326,248 @@ export default function RecipeView() {
           </>
         ) : (
           /* Edit Mode - Modal */
-          <div style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-            padding: "20px"
-          }}>
-            {/* Edit form will go here - we'll add it next */}
+          <div 
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000,
+              padding: "20px"
+            }}
+            onClick={() => setEditing(false)}
+          >
+            <div 
+              style={{
+                backgroundColor: "white",
+                borderRadius: "8px",
+                padding: "24px",
+                maxWidth: "800px",
+                width: "100%",
+                maxHeight: "90vh",
+                overflowY: "auto",
+                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)"
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <h3 style={{ margin: 0, fontSize: "24px" }}>Edit Recipe</h3>
+                <button
+                  onClick={() => setEditing(false)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    fontSize: "24px",
+                    cursor: "pointer",
+                    color: "#666",
+                    padding: "4px"
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Title */}
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Title</label>
+                <input 
+                  value={title} 
+                  onChange={e=>setTitle(e.target.value)} 
+                  style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }} 
+                />
+              </div>
+              
+              {/* Servings, Prep, Cook */}
+              <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Servings</label>
+                  <input 
+                    type="number" 
+                    value={servings} 
+                    onChange={e=>setServings(parseInt(e.target.value||"1",10))} 
+                    style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }} 
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Prep minutes</label>
+                  <input 
+                    type="number" 
+                    value={prepMinutes as any} 
+                    onChange={e=>setPrepMinutes(e.target.value===""?"":parseInt(e.target.value,10))} 
+                    style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }} 
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Cook minutes</label>
+                  <input 
+                    type="number" 
+                    value={cookMinutes as any} 
+                    onChange={e=>setCookMinutes(e.target.value===""?"":parseInt(e.target.value,10))} 
+                    style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }} 
+                  />
+                </div>
+              </div>
+
+              {/* Cuisine & Meal Type */}
+              <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Cuisine</label>
+                  <select 
+                    value={cuisine} 
+                    onChange={e=>setCuisine(e.target.value)} 
+                    style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }}
+                  >
+                    <option value="">Select cuisine...</option>
+                    {CUISINES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Meal type</label>
+                  <select 
+                    value={mealType} 
+                    onChange={e=>setMealType(e.target.value)} 
+                    style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }}
+                  >
+                    <option value="">Select meal type...</option>
+                    {MEAL_TYPES.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                </div>
+              </div>
+              
+              {/* Photo Upload */}
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Recipe Photo</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={e => setPhotoFile(e.target.files?.[0] || null)} 
+                  style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }}
+                />
+                {photoFile && <span style={{color:"#666", fontSize:"0.9em", marginTop: "4px", display: "block"}}>Selected: {photoFile.name}</span>}
+                {r.photo_url && !photoFile && <span style={{color:"#666", fontSize:"0.9em", marginTop: "4px", display: "block"}}>Current photo will be kept</span>}
+              </div>
+              
+              {/* Dietary Tags */}
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Dietary tags</label>
+                <input 
+                  value={tags} 
+                  onChange={e=>setTags(e.target.value)} 
+                  placeholder="comma-separated, e.g. vegetarian,gluten-free" 
+                  style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd" }} 
+                />
+              </div>
+
+              {/* Ingredients */}
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Ingredients (one per line)</label>
+                <textarea 
+                  value={ingredientsText} 
+                  onChange={e=>setIngredientsText(e.target.value)} 
+                  rows={6} 
+                  placeholder="2 cups flour&#10;1 tsp salt&#10;3 eggs"
+                  style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd", fontFamily: "inherit", resize: "vertical" }}
+                />
+              </div>
+              
+              {/* Instructions */}
+              <div style={{ marginBottom: "16px" }}>
+                <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Instructions (one step per line)</label>
+                <textarea 
+                  value={instructionsText} 
+                  onChange={e=>setInstructionsText(e.target.value)} 
+                  rows={6} 
+                  placeholder="Preheat oven to 180C&#10;Mix dry ingredients&#10;Add wet ingredients and mix"
+                  style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd", fontFamily: "inherit", resize: "vertical" }}
+                />
+              </div>
+              
+              {/* Notes */}
+              <div style={{ marginBottom: "24px" }}>
+                <label style={{ display: "block", fontWeight: "bold", marginBottom: "4px" }}>Notes</label>
+                <textarea 
+                  value={notes} 
+                  onChange={e=>setNotes(e.target.value)} 
+                  rows={3} 
+                  placeholder="Any additional notes or tips..."
+                  style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #ddd", fontFamily: "inherit", resize: "vertical" }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button 
+                  onClick={async ()=>{
+                    try{
+                      setUploading(true);
+                      
+                      // Upload photo if a new file is selected
+                      let finalPhotoUrl = r.photo_url;
+                      if (photoFile) {
+                        finalPhotoUrl = await uploadPhoto(photoFile);
+                      }
+                      
+                      const payload = {
+                        title,
+                        servings,
+                        prep_minutes: prepMinutes === "" ? undefined : prepMinutes,
+                        cook_minutes: cookMinutes === "" ? undefined : cookMinutes,
+                        cuisine: cuisine || undefined,
+                        meal_type: mealType || undefined,
+                        dietary_tags: tags.split(',').map(t=>t.trim()).filter(Boolean),
+                        ingredients: ingredientsText.split('\n').map(l=>l.trim()).filter(Boolean),
+                        instructions: instructionsText.split('\n').map(l=>l.trim()).filter(Boolean),
+                        notes: notes || undefined,
+                        photo_url: finalPhotoUrl || undefined,
+                      };
+                      
+                      const updated = await apiPut<Recipe>(`/api/recipes/${id}`, payload);
+                      setR(updated);
+                      setEditing(false);
+                      setPhotoFile(null);
+                    }catch(err){ 
+                      console.error("Recipe update error:", err); 
+                      alert("Failed to update recipe"); 
+                    } finally {
+                      setUploading(false);
+                    }
+                  }}
+                  disabled={uploading}
+                  style={{
+                    padding: "12px 24px",
+                    backgroundColor: uploading ? "#ccc" : "#28a745",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontSize: "16px",
+                    cursor: uploading ? "not-allowed" : "pointer",
+                    marginRight: "12px"
+                  }}
+                >
+                  {uploading ? "Updating..." : "Update Recipe"}
+                </button>
+                
+                <button 
+                  onClick={() => setEditing(false)}
+                  style={{
+                    padding: "12px 24px",
+                    backgroundColor: "#6c757d",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontSize: "16px",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
