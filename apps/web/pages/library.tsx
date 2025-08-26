@@ -23,7 +23,9 @@ const CUISINES = ["Italian", "Chinese", "Mexican", "Indian", "French", "Thai", "
 export default function Library() {
   const { user, isLoading } = useUser();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [q, setQ] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchCuisine, setSearchCuisine] = useState("");
+  const [searchMealType, setSearchMealType] = useState("");
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -43,6 +45,47 @@ export default function Library() {
     setTitle(""); setServings(2); setPrepMinutes(""); setCookMinutes(""); 
     setCuisine(""); setMealType(""); setTags(""); setNotes(""); setPhotoUrl("");
     setPhotoFile(null); setIngredientsText(""); setInstructionsText("");
+  };
+
+  const resetSearch = () => {
+    setSearchQuery("");
+    setSearchCuisine("");
+    setSearchMealType("");
+  };
+
+  const filterRecipes = (recipes: Recipe[]) => {
+    return recipes.filter(recipe => {
+      const query = searchQuery.toLowerCase();
+      const cuisine = searchCuisine.toLowerCase();
+      const mealType = searchMealType.toLowerCase();
+
+      // Search in title
+      const titleMatch = !query || recipe.title.toLowerCase().includes(query);
+      
+      // Search in cuisine
+      const cuisineMatch = !searchCuisine || (recipe.cuisine && recipe.cuisine.toLowerCase().includes(cuisine));
+      
+      // Search in meal type
+      const mealTypeMatch = !searchMealType || (recipe.meal_type && recipe.meal_type.toLowerCase().includes(mealType));
+      
+      // Search in ingredients
+      const ingredientsMatch = !query || (recipe.ingredients && recipe.ingredients.some(ing => 
+        ing.toLowerCase().includes(query)
+      ));
+      
+      // Search in dietary tags
+      const tagsMatch = !query || (recipe.dietary_tags && recipe.dietary_tags.some(tag => 
+        tag.toLowerCase().includes(query)
+      ));
+      
+      // Search in notes
+      const notesMatch = !query || (recipe.notes && recipe.notes.toLowerCase().includes(query));
+
+      // For text search, match title, ingredients, tags, or notes
+      const textMatch = !query || titleMatch || ingredientsMatch || tagsMatch || notesMatch;
+      
+      return textMatch && cuisineMatch && mealTypeMatch;
+    });
   };
 
   const uploadPhoto = async (file: File): Promise<string> => {
@@ -89,17 +132,67 @@ export default function Library() {
   return (
     <main style={{ padding: 24 }}>
       <h2>Your Recipes</h2>
+      <div style={{ margin: "16px 0", padding: "16px", border: "1px solid #ddd", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
+        <h3 style={{ margin: "0 0 12px 0", fontSize: "18px" }}>Search & Filter Recipes</h3>
+        
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", alignItems: "center", marginBottom: "12px" }}>
+          <div>
+            <label style={{ fontSize: "14px", fontWeight: "bold", marginRight: "6px" }}>Search:</label>
+            <input 
+              placeholder="Recipe name, ingredients, tags..." 
+              value={searchQuery} 
+              onChange={e=>setSearchQuery(e.target.value)} 
+              style={{ width: "250px", padding: "6px" }}
+            />
+          </div>
+          
+          <div>
+            <label style={{ fontSize: "14px", fontWeight: "bold", marginRight: "6px" }}>Cuisine:</label>
+            <select 
+              value={searchCuisine} 
+              onChange={e=>setSearchCuisine(e.target.value)} 
+              style={{ padding: "6px", width: "140px" }}
+            >
+              <option value="">All Cuisines</option>
+              {CUISINES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          
+          <div>
+            <label style={{ fontSize: "14px", fontWeight: "bold", marginRight: "6px" }}>Meal Type:</label>
+            <select 
+              value={searchMealType} 
+              onChange={e=>setSearchMealType(e.target.value)} 
+              style={{ padding: "6px", width: "140px" }}
+            >
+              <option value="">All Types</option>
+              {MEAL_TYPES.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          
+          <button 
+            onClick={resetSearch}
+            style={{ padding: "6px 12px", backgroundColor: "#f0f0f0", border: "1px solid #ccc", borderRadius: "4px", cursor: "pointer" }}
+          >
+            Clear Filters
+          </button>
+        </div>
+        
+        <div style={{ fontSize: "14px", color: "#666" }}>
+          Showing {filterRecipes(recipes).length} of {recipes.length} recipes
+        </div>
+      </div>
+
       <div style={{ margin: "12px 0" }}>
-        <input placeholder="Search title…" value={q} onChange={e=>setQ(e.target.value)} />
         <button 
           onClick={()=>{
             setCreating(s=>!s);
             setEditing(null);
             resetForm();
           }} 
-          style={{ marginLeft: 8 }}
+          style={{ padding: "8px 16px", backgroundColor: "#007bff", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "16px" }}
         >
-          {creating?"Close":"Add Recipe"}
+          {creating?"Close":"+ Add New Recipe"}
         </button>
       </div>
       {(creating || editing) && (
@@ -217,48 +310,63 @@ export default function Library() {
         </div>
       )}
       <div style={{marginTop:20}}>
-        {recipes.filter(r=>r.title.toLowerCase().includes(q.toLowerCase())).map(r => (
-          <div key={r.id} style={{border:"1px solid #eee", padding:12, marginBottom:12, maxWidth:720}}>
-            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+        {filterRecipes(recipes).length === 0 ? (
+          <div style={{textAlign:"center", padding:"40px", color:"#666", fontSize:"16px"}}>
+            {recipes.length === 0 ? (
               <div>
-                <h4 style={{margin:"0 0 4px 0"}}>
-                  <a href={`/recipe/${r.id}`} style={{textDecoration:"none", color:"#0066cc"}}>{r.title}</a>
-                </h4>
-                <div style={{fontSize:"0.9em", color:"#666"}}>
-                  {r.servings} serving{r.servings !== 1 ? 's' : ''}
-                  {r.prep_minutes && ` • ${r.prep_minutes}min prep`}
-                  {r.cook_minutes && ` • ${r.cook_minutes}min cook`}
-                  {r.cuisine && ` • ${r.cuisine}`}
-                  {r.meal_type && ` • ${r.meal_type}`}
-                </div>
-                {r.dietary_tags && r.dietary_tags.length > 0 && (
-                  <div style={{fontSize:"0.8em", color:"#888", marginTop:2}}>
-                    Tags: {r.dietary_tags.join(", ")}
-                  </div>
-                )}
+                <p>No recipes yet! Click "Add New Recipe" to get started.</p>
               </div>
+            ) : (
               <div>
-                {r.photo_url && (
-                  <img 
-                    src={r.photo_url} 
-                    alt={r.title} 
-                    style={{width:60, height:60, objectFit:"cover", borderRadius:4, marginRight:8}} 
-                  />
-                )}
-                <button 
-                  onClick={()=>{
-                    setEditing(r.id);
-                    setCreating(false);
-                    loadRecipe(r);
-                  }}
-                  style={{fontSize:"0.8em", padding:"4px 8px"}}
-                >
-                  Edit
-                </button>
+                <p>No recipes match your search criteria.</p>
+                <p style={{fontSize:"14px"}}>Try adjusting your filters or search terms.</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          filterRecipes(recipes).map(r => (
+            <div key={r.id} style={{border:"1px solid #eee", padding:12, marginBottom:12, maxWidth:720}}>
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+                <div>
+                  <h4 style={{margin:"0 0 4px 0"}}>
+                    <a href={`/recipe/${r.id}`} style={{textDecoration:"none", color:"#0066cc"}}>{r.title}</a>
+                  </h4>
+                  <div style={{fontSize:"0.9em", color:"#666"}}>
+                    {r.servings} serving{r.servings !== 1 ? 's' : ''}
+                    {r.prep_minutes && ` • ${r.prep_minutes}min prep`}
+                    {r.cook_minutes && ` • ${r.cook_minutes}min cook`}
+                    {r.cuisine && ` • ${r.cuisine}`}
+                    {r.meal_type && ` • ${r.meal_type}`}
+                  </div>
+                  {r.dietary_tags && r.dietary_tags.length > 0 && (
+                    <div style={{fontSize:"0.8em", color:"#888", marginTop:2}}>
+                      Tags: {r.dietary_tags.join(", ")}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  {r.photo_url && (
+                    <img 
+                      src={r.photo_url} 
+                      alt={r.title} 
+                      style={{width:60, height:60, objectFit:"cover", borderRadius:4, marginRight:8}} 
+                    />
+                  )}
+                  <button 
+                    onClick={()=>{
+                      setEditing(r.id);
+                      setCreating(false);
+                      loadRecipe(r);
+                    }}
+                    style={{fontSize:"0.8em", padding:"4px 8px"}}
+                  >
+                    Edit
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </main>
   );
