@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
-import { apiGet, apiPost, apiPut } from "../../lib/api";
+import { apiGet, apiPost, apiPut, apiDelete } from "../../lib/api";
 
 type Recipe = { 
   id: string; 
@@ -22,7 +22,8 @@ const MEAL_TYPES = ["Appetizer", "Main Course", "Dessert", "Side Dish", "Drink",
 const CUISINES = ["Italian", "Chinese", "Mexican", "Indian", "French", "Thai", "Japanese", "Mediterranean", "American", "Middle Eastern", "Other"];
 
 export default function RecipeView() {
-  const { query } = useRouter();
+  const router = useRouter();
+  const { query } = router;
   const { user } = useUser();
   const [r, setR] = useState<Recipe | null>(null);
   const [editing, setEditing] = useState(false);
@@ -500,63 +501,91 @@ export default function RecipeView() {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: "flex", gap: "12px" }}>
-                <button 
-                  onClick={async ()=>{
-                    try{
-                      setUploading(true);
-                      
-                      // Upload photo if a new file is selected
-                      let finalPhotoUrl = r.photo_url;
-                      if (photoFile) {
-                        finalPhotoUrl = await uploadPhoto(photoFile);
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <button 
+                    onClick={async ()=>{
+                      try{
+                        setUploading(true);
+                        
+                        // Upload photo if a new file is selected
+                        let finalPhotoUrl = r.photo_url;
+                        if (photoFile) {
+                          finalPhotoUrl = await uploadPhoto(photoFile);
+                        }
+                        
+                        const payload = {
+                          title,
+                          servings,
+                          prep_minutes: prepMinutes === "" ? undefined : prepMinutes,
+                          cook_minutes: cookMinutes === "" ? undefined : cookMinutes,
+                          cuisine: cuisine || undefined,
+                          meal_type: mealType || undefined,
+                          dietary_tags: tags.split(',').map(t=>t.trim()).filter(Boolean),
+                          ingredients: ingredientsText.split('\n').map(l=>l.trim()).filter(Boolean),
+                          instructions: instructionsText.split('\n').map(l=>l.trim()).filter(Boolean),
+                          notes: notes || undefined,
+                          photo_url: finalPhotoUrl || undefined,
+                        };
+                        
+                        const updated = await apiPut<Recipe>(`/api/recipes/${id}`, payload);
+                        setR(updated);
+                        setEditing(false);
+                        setPhotoFile(null);
+                      }catch(err){ 
+                        console.error("Recipe update error:", err); 
+                        alert("Failed to update recipe"); 
+                      } finally {
+                        setUploading(false);
                       }
-                      
-                      const payload = {
-                        title,
-                        servings,
-                        prep_minutes: prepMinutes === "" ? undefined : prepMinutes,
-                        cook_minutes: cookMinutes === "" ? undefined : cookMinutes,
-                        cuisine: cuisine || undefined,
-                        meal_type: mealType || undefined,
-                        dietary_tags: tags.split(',').map(t=>t.trim()).filter(Boolean),
-                        ingredients: ingredientsText.split('\n').map(l=>l.trim()).filter(Boolean),
-                        instructions: instructionsText.split('\n').map(l=>l.trim()).filter(Boolean),
-                        notes: notes || undefined,
-                        photo_url: finalPhotoUrl || undefined,
-                      };
-                      
-                      const updated = await apiPut<Recipe>(`/api/recipes/${id}`, payload);
-                      setR(updated);
-                      setEditing(false);
-                      setPhotoFile(null);
-                    }catch(err){ 
-                      console.error("Recipe update error:", err); 
-                      alert("Failed to update recipe"); 
-                    } finally {
-                      setUploading(false);
+                    }}
+                    disabled={uploading}
+                    style={{
+                      padding: "12px 24px",
+                      backgroundColor: uploading ? "#ccc" : "#28a745",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "16px",
+                      cursor: uploading ? "not-allowed" : "pointer"
+                    }}
+                  >
+                    {uploading ? "Updating..." : "Update Recipe"}
+                  </button>
+                  
+                  <button 
+                    onClick={() => setEditing(false)}
+                    style={{
+                      padding: "12px 24px",
+                      backgroundColor: "#6c757d",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "16px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                {/* Delete Button */}
+                <button 
+                  onClick={async () => {
+                    if (window.confirm(`Are you sure you want to delete "${r.title}"? This action cannot be undone.`)) {
+                      try {
+                        await apiDelete(`/api/recipes/${id}`);
+                        alert("Recipe deleted successfully!");
+                        router.push("/library");
+                      } catch (err) {
+                        console.error("Delete error:", err);
+                        alert("Failed to delete recipe");
+                      }
                     }
                   }}
-                  disabled={uploading}
                   style={{
                     padding: "12px 24px",
-                    backgroundColor: uploading ? "#ccc" : "#28a745",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    fontSize: "16px",
-                    cursor: uploading ? "not-allowed" : "pointer",
-                    marginRight: "12px"
-                  }}
-                >
-                  {uploading ? "Updating..." : "Update Recipe"}
-                </button>
-                
-                <button 
-                  onClick={() => setEditing(false)}
-                  style={{
-                    padding: "12px 24px",
-                    backgroundColor: "#6c757d",
+                    backgroundColor: "#dc3545",
                     color: "white",
                     border: "none",
                     borderRadius: "6px",
@@ -564,7 +593,7 @@ export default function RecipeView() {
                     cursor: "pointer"
                   }}
                 >
-                  Cancel
+                  🗑️ Delete Recipe
                 </button>
               </div>
             </div>

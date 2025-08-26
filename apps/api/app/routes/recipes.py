@@ -103,6 +103,30 @@ def update_recipe(rid: str, payload: RecipeCreate, claims: dict = Depends(requir
         db.rollback()
         raise HTTPException(500, f"Failed to update recipe: {str(e)}")
 
+@router.delete("/recipes/{rid}")
+def delete_recipe(rid: str, claims: dict = Depends(require_auth_dependency), db: Session = Depends(get_db)):
+    import logging
+    logger = logging.getLogger("cookbook.api")
+    
+    try:
+        logger.info(f"Deleting recipe {rid} for user {claims['sub']}")
+        
+        r = db.get(Recipe, rid)
+        if not r or r.owner_sub != claims["sub"]:
+            raise HTTPException(404, "Not found")
+        
+        db.delete(r)
+        db.commit()
+        
+        logger.info(f"Recipe {rid} deleted successfully")
+        return {"message": "Recipe deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Recipe deletion failed: {str(e)}")
+        db.rollback()
+        raise HTTPException(500, f"Failed to delete recipe: {str(e)}")
+
 @router.post("/recipes/{rid}/export-pdf")
 def export_pdf(rid: str, body: dict, claims: dict = Depends(require_auth_dependency), db: Session = Depends(get_db)):
     r = db.get(Recipe, rid)

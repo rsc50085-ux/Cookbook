@@ -31,4 +31,14 @@ export async function apiPut<T>(path: string, body: any, token?: string): Promis
   return resp as T;
 }
 
+export async function apiDelete<T>(path: string, token?: string): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const r = await fetch(resolveUrl(path), { method: "DELETE", headers });
+  const ct = r.headers.get("content-type") || "";
+  const resp = ct.includes("application/json") ? await r.json().catch(() => ({})) : await r.text();
+  if (!r.ok) throw new Error(typeof resp === "string" && resp ? resp : r.statusText);
+  return resp as T;
+}
+
 
