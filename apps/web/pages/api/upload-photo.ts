@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { withApiAuthRequired, getAccessToken } from "@auth0/nextjs-auth0";
 import formidable from "formidable";
+import fs from "fs";
 
 const API = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL!;
 const AUDIENCE = process.env.AUTH0_AUDIENCE || "https://api.cookbook";
@@ -46,24 +47,28 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
       return res.status(400).json({ error: "No file provided" });
     }
 
-    // Create FormData for API request
-    const fs = await import("fs");
-    const FormData = await import("form-data");
-    const formData = new FormData.default();
-    formData.append("file", fs.createReadStream(file.filepath), {
+    // Read file content
+    const fileContent = fs.readFileSync(file.filepath);
+    
+    // Create FormData for browser-compatible multipart request
+    const FormData = require("form-data");
+    const formData = new FormData();
+    formData.append("file", fileContent, {
       filename: file.originalFilename || "upload.jpg",
       contentType: file.mimetype || "image/jpeg",
     });
 
-    // Forward to API
+    // Forward to API using node-fetch style
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      ...formData.getHeaders(),
+    };
+
     const response = await fetch(`${API}/upload-photo`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        ...formData.getHeaders(),
-      },
+      headers,
       body: formData,
-    });
+    } as any);
 
     const data = await response.json();
     
