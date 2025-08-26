@@ -67,31 +67,60 @@ export default withApiAuthRequired(async function handler(req: NextApiRequest, r
       return res.status(400).json({ error: "File too large (max 5MB)" });
     }
 
-    // Read file content
-    const fileContent = fs.readFileSync(file.filepath);
-    console.log("Read file content, size:", fileContent.length);
+    console.log("Creating FormData with stream...");
     
-    // Create FormData for API request
+    // Create FormData using file stream (better for FastAPI)
     const FormData = require("form-data");
     const formData = new FormData();
-    formData.append("file", fileContent, {
+    
+    // Use file stream instead of reading into memory
+    formData.append("file", fs.createReadStream(file.filepath), {
       filename: file.originalFilename || "upload.jpg",
       contentType: file.mimetype || "image/jpeg",
     });
 
     console.log("Sending to API:", `${API}/upload-photo`);
 
-    // Forward to API
-    const headers = {
-      Authorization: `Bearer ${accessToken}`,
-      ...formData.getHeaders(),
-    };
+    // Use node's https module for better compatibility
+    const https = require("https");
+    const url = require("url");
+    const apiUrl = new URL(`${API}/upload-photo`);
+    
+    const response = await new Promise<any>((resolve, reject) => {
+      const options = {
+        hostname: apiUrl.hostname,
+        port: apiUrl.port || (apiUrl.protocol === "https:" ? 443 : 80),
+        path: apiUrl.pathname,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          ...formData.getHeaders(),
+        },
+      };
 
-    const response = await fetch(`${API}/upload-photo`, {
-      method: "POST",
-      headers,
-      body: formData,
-    } as any);
+      console.log("Request options:", options);
+
+      const req = https.request(options, (res: any) => {
+        let data = "";
+        res.on("data", (chunk: any) => data += chunk);
+        res.on("end", () => {
+          console.log("Raw response:", data);
+          resolve({
+            ok: res.statusCode >= 200 && res.statusCode < 300,
+            status: res.statusCode,
+            text: async () => data,
+            json: async () => JSON.parse(data),
+          });
+        });
+      });
+      
+      req.on("error", (error: any) => {
+        console.error("Request error:", error);
+        reject(error);
+      });
+      
+      formData.pipe(req);
+    });
 
     console.log("API response status:", response.status);
     

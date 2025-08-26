@@ -69,31 +69,48 @@ def export_pdf(rid: str, body: dict, claims: dict = Depends(require_auth_depende
 
 @router.post("/upload-photo")
 async def upload_photo(file: UploadFile = File(...), claims: dict = Depends(require_auth_dependency)):
-    # Validate file type
-    if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(400, "File must be an image")
+    import logging
+    logger = logging.getLogger("cookbook.api")
     
-    # Validate file size (max 5MB)
-    file_size = 0
-    content = await file.read()
-    file_size = len(content)
-    if file_size > 5 * 1024 * 1024:  # 5MB
-        raise HTTPException(400, "File too large (max 5MB)")
-    
-    # Generate unique filename
-    file_ext = file.filename.split(".")[-1] if "." in file.filename else "jpg"
-    filename = f"{uuid.uuid4().hex}.{file_ext}"
-    
-    # Save file
-    base_dir = os.getenv("FILES_DIR", "/tmp")
-    photos_dir = Path(base_dir) / "photos"
-    photos_dir.mkdir(exist_ok=True)
-    
-    file_path = photos_dir / filename
-    with open(file_path, "wb") as f:
-        f.write(content)
-    
-    return {"photo_url": f"/photos/{filename}"}
+    try:
+        logger.info(f"Upload attempt - filename: {file.filename}, content_type: {file.content_type}")
+        
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith("image/"):
+            logger.warning(f"Invalid file type: {file.content_type}")
+            raise HTTPException(400, "File must be an image")
+        
+        # Read content
+        content = await file.read()
+        logger.info(f"File read successfully, size: {len(content)} bytes")
+        
+        # Validate file size (max 5MB)
+        if len(content) > 5 * 1024 * 1024:  # 5MB
+            logger.warning(f"File too large: {len(content)} bytes")
+            raise HTTPException(400, "File too large (max 5MB)")
+        
+        # Generate unique filename
+        file_ext = file.filename.split(".")[-1] if file.filename and "." in file.filename else "jpg"
+        filename = f"{uuid.uuid4().hex}.{file_ext}"
+        logger.info(f"Generated filename: {filename}")
+        
+        # Save file
+        base_dir = os.getenv("FILES_DIR", "/tmp")
+        photos_dir = Path(base_dir) / "photos"
+        photos_dir.mkdir(exist_ok=True)
+        
+        file_path = photos_dir / filename
+        with open(file_path, "wb") as f:
+            f.write(content)
+        
+        logger.info(f"File saved successfully: {file_path}")
+        return {"photo_url": f"/photos/{filename}"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Upload error: {str(e)}")
+        raise HTTPException(500, f"Upload failed: {str(e)}")
 
 @router.get("/photos/{filename}")
 def serve_photo(filename: str):
