@@ -19,17 +19,72 @@ export default function RecipeView() {
 
   if (!r) return <p>Loading…</p>;
   return (
-    <main style={{ padding: 24 }}>
-      <h2>{r.title}</h2>
-      <p>Servings: {r.servings}</p>
-      <h3>Ingredients</h3>
-      <pre>{JSON.stringify(r.ingredients, null, 2)}</pre>
-      <h3>Instructions</h3>
-      <ol>{(r.instructions ?? []).map((s:string,i:number)=><li key={i}>{s}</li>)}</ol>
-      {user && <button onClick={async ()=>{
-        const out = await apiPost<{url:string}>(`/api/recipes/${id}/export-pdf`, { style: "minimal" });
-        window.open(out.url, "_blank");
-      }}>Export PDF</button>}
+    <main style={{ padding: 24, maxWidth: 800 }}>
+      <div style={{ display: "flex", gap: 20, marginBottom: 20 }}>
+        <div style={{ flex: 1 }}>
+          <h1 style={{ margin: "0 0 8px 0" }}>{r.title}</h1>
+          <div style={{ color: "#666", marginBottom: 16 }}>
+            {r.servings} serving{r.servings !== 1 ? 's' : ''}
+            {r.prep_minutes && ` • ${r.prep_minutes} min prep`}
+            {r.cook_minutes && ` • ${r.cook_minutes} min cook`}
+            {r.cuisine && ` • ${r.cuisine}`}
+            {r.meal_type && ` • ${r.meal_type}`}
+          </div>
+          {r.dietary_tags && r.dietary_tags.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <strong>Tags:</strong> {r.dietary_tags.join(", ")}
+            </div>
+          )}
+          {r.notes && (
+            <div style={{ backgroundColor: "#f9f9f9", padding: 12, borderRadius: 4, marginBottom: 16 }}>
+              <strong>Notes:</strong> {r.notes}
+            </div>
+          )}
+        </div>
+        {r.photo_url && (
+          <div>
+            <img 
+              src={r.photo_url} 
+              alt={r.title} 
+              style={{ width: 200, height: 200, objectFit: "cover", borderRadius: 8 }} 
+            />
+          </div>
+        )}
+      </div>
+      
+      <div style={{ display: "flex", gap: 40 }}>
+        <div style={{ flex: 1 }}>
+          <h3>Ingredients</h3>
+          <ul>
+            {(r.ingredients ?? []).map((ingredient: string, i: number) => (
+              <li key={i} style={{ marginBottom: 4 }}>{ingredient}</li>
+            ))}
+          </ul>
+        </div>
+        
+        <div style={{ flex: 1 }}>
+          <h3>Instructions</h3>
+          <ol>
+            {(r.instructions ?? []).map((instruction: string, i: number) => (
+              <li key={i} style={{ marginBottom: 8 }}>{instruction}</li>
+            ))}
+          </ol>
+        </div>
+      </div>
+      
+      <div style={{ marginTop: 32, borderTop: "1px solid #eee", paddingTop: 16 }}>
+        <a href="/library" style={{ marginRight: 16, textDecoration: "none", color: "#0066cc" }}>
+          ← Back to Library
+        </a>
+        {user && (
+          <button onClick={async ()=>{
+            const out = await apiPost<{url:string}>(`/api/recipes/${id}/export-pdf`, { style: "minimal" });
+            window.open(out.url, "_blank");
+          }}>
+            Export PDF
+          </button>
+        )}
+      </div>
     </main>
   );
 }

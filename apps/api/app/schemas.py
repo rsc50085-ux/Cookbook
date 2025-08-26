@@ -12,6 +12,7 @@ class RecipeCreate(BaseModel):
     meal_type: Optional[str] = None
     dietary_tags: List[str] = Field(default_factory=list)
     notes: Optional[str] = None
+    photo_url: Optional[str] = None
 
 class RecipeOut(RecipeCreate):
     id: str

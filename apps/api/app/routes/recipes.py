@@ -44,6 +44,19 @@ def get_recipe(rid: str, claims: dict = Depends(require_auth_dependency), db: Se
         raise HTTPException(404, "Not found")
     return to_out(r)
 
+@router.put("/recipes/{rid}", response_model=RecipeOut)
+def update_recipe(rid: str, payload: RecipeCreate, claims: dict = Depends(require_auth_dependency), db: Session = Depends(get_db)):
+    r = db.get(Recipe, rid)
+    if not r or r.owner_sub != claims["sub"]:
+        raise HTTPException(404, "Not found")
+    
+    # Update all fields from payload
+    for field, value in payload.model_dump().items():
+        setattr(r, field, value)
+    
+    db.add(r); db.commit(); db.refresh(r)
+    return to_out(r)
+
 @router.post("/recipes/{rid}/export-pdf")
 def export_pdf(rid: str, body: dict, claims: dict = Depends(require_auth_dependency), db: Session = Depends(get_db)):
     r = db.get(Recipe, rid)
@@ -85,7 +98,7 @@ def to_out(r: Recipe) -> RecipeOut:
       prep_minutes=r.prep_minutes, cook_minutes=r.cook_minutes,
       ingredients=r.ingredients, instructions=r.instructions,
       cuisine=r.cuisine, meal_type=r.meal_type, dietary_tags=r.dietary_tags,
-      notes=r.notes, visibility=r.visibility, public_token=r.public_token
+      notes=r.notes, photo_url=r.photo_url, visibility=r.visibility, public_token=r.public_token
     )
 
 def to_dict(r: Recipe) -> dict:

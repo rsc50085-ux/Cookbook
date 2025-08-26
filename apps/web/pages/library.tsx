@@ -1,14 +1,31 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@auth0/nextjs-auth0/client";
-import { apiGet, apiPost } from "../lib/api";
+import { apiGet, apiPost, apiPut } from "../lib/api";
 
-type Recipe = { id: string; title: string; servings: number };
+type Recipe = { 
+  id: string; 
+  title: string; 
+  servings: number;
+  prep_minutes?: number;
+  cook_minutes?: number;
+  cuisine?: string;
+  meal_type?: string;
+  dietary_tags: string[];
+  notes?: string;
+  photo_url?: string;
+  ingredients: string[];
+  instructions: string[];
+};
+
+const MEAL_TYPES = ["Appetizer", "Main Course", "Dessert", "Side Dish", "Drink", "Other"];
+const CUISINES = ["Italian", "Chinese", "Mexican", "Indian", "French", "Thai", "Japanese", "Mediterranean", "American", "Middle Eastern", "Other"];
 
 export default function Library() {
   const { user, isLoading } = useUser();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [q, setQ] = useState("");
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [servings, setServings] = useState(2);
   const [prepMinutes, setPrepMinutes] = useState<number | "">("");
@@ -17,8 +34,29 @@ export default function Library() {
   const [mealType, setMealType] = useState("");
   const [tags, setTags] = useState("");
   const [notes, setNotes] = useState("");
+  const [photoUrl, setPhotoUrl] = useState("");
   const [ingredientsText, setIngredientsText] = useState("");
   const [instructionsText, setInstructionsText] = useState("");
+  const resetForm = () => {
+    setTitle(""); setServings(2); setPrepMinutes(""); setCookMinutes(""); 
+    setCuisine(""); setMealType(""); setTags(""); setNotes(""); setPhotoUrl("");
+    setIngredientsText(""); setInstructionsText("");
+  };
+
+  const loadRecipe = (recipe: Recipe) => {
+    setTitle(recipe.title);
+    setServings(recipe.servings);
+    setPrepMinutes(recipe.prep_minutes || "");
+    setCookMinutes(recipe.cook_minutes || "");
+    setCuisine(recipe.cuisine || "");
+    setMealType(recipe.meal_type || "");
+    setTags((recipe.dietary_tags || []).join(", "));
+    setNotes(recipe.notes || "");
+    setPhotoUrl(recipe.photo_url || "");
+    setIngredientsText((recipe.ingredients || []).join("\n"));
+    setInstructionsText((recipe.instructions || []).join("\n"));
+  };
+
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -33,18 +71,38 @@ export default function Library() {
       <h2>Your Recipes</h2>
       <div style={{ margin: "12px 0" }}>
         <input placeholder="Search title…" value={q} onChange={e=>setQ(e.target.value)} />
-        <button onClick={()=>setCreating(s=>!s)} style={{ marginLeft: 8 }}>{creating?"Close":"Add Recipe"}</button>
+        <button 
+          onClick={()=>{
+            setCreating(s=>!s);
+            setEditing(null);
+            resetForm();
+          }} 
+          style={{ marginLeft: 8 }}
+        >
+          {creating?"Close":"Add Recipe"}
+        </button>
       </div>
-      {creating && (
+      {(creating || editing) && (
         <div style={{ border:"1px solid #ccc", padding:12, maxWidth:720 }}>
+          <h3>{editing ? "Edit Recipe" : "Add New Recipe"}</h3>
           <div style={{ marginBottom:8 }}>Title <input value={title} onChange={e=>setTitle(e.target.value)} style={{width:300}} /></div>
           <div style={{ marginBottom:8 }}>Servings <input type="number" value={servings} onChange={e=>setServings(parseInt(e.target.value||"1",10))} style={{width:100}} /></div>
           <div style={{ marginBottom:8 }}>Prep minutes <input type="number" value={prepMinutes as any} onChange={e=>setPrepMinutes(e.target.value===""?"":parseInt(e.target.value,10))} style={{width:120}} />
             &nbsp; Cook minutes <input type="number" value={cookMinutes as any} onChange={e=>setCookMinutes(e.target.value===""?"":parseInt(e.target.value,10))} style={{width:120}} />
           </div>
-          <div style={{ marginBottom:8 }}>Cuisine <input value={cuisine} onChange={e=>setCuisine(e.target.value)} style={{width:200}} />
-            &nbsp; Meal type <input value={mealType} onChange={e=>setMealType(e.target.value)} placeholder="main, dessert…" style={{width:200}} />
+          <div style={{ marginBottom:8 }}>
+            Cuisine 
+            <select value={cuisine} onChange={e=>setCuisine(e.target.value)} style={{width:200, marginLeft:8}}>
+              <option value="">Select cuisine...</option>
+              {CUISINES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            &nbsp; Meal type 
+            <select value={mealType} onChange={e=>setMealType(e.target.value)} style={{width:200, marginLeft:8}}>
+              <option value="">Select meal type...</option>
+              {MEAL_TYPES.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
           </div>
+          <div style={{ marginBottom:8 }}>Photo URL <input value={photoUrl} onChange={e=>setPhotoUrl(e.target.value)} placeholder="https://example.com/photo.jpg" style={{width:420}} /></div>
           <div style={{ marginBottom:8 }}>Dietary tags <input value={tags} onChange={e=>setTags(e.target.value)} placeholder="comma-separated, e.g. vegetarian,gluten-free" style={{width:420}} /></div>
           <div style={{ marginBottom:8 }}>Ingredients (one per line)
             <br/>
@@ -71,16 +129,79 @@ export default function Library() {
                 ingredients: ingredientsText.split('\n').map(l=>l.trim()).filter(Boolean),
                 instructions: instructionsText.split('\n').map(l=>l.trim()).filter(Boolean),
                 notes: notes || undefined,
+                photo_url: photoUrl || undefined,
               };
-              const created = await apiPost<Recipe>("/api/recipes", payload);
-              setRecipes([created, ...recipes]);
-              setCreating(false);
-              setTitle(""); setServings(2); setPrepMinutes(""); setCookMinutes(""); setCuisine(""); setMealType(""); setTags(""); setNotes(""); setIngredientsText(""); setInstructionsText("");
-            }catch(err){ console.error(err); alert("Failed to create"); }
-          }}>Save</button>
+              
+              if (editing) {
+                const updated = await apiPut<Recipe>(`/api/recipes/${editing}`, payload);
+                setRecipes(recipes.map(r => r.id === editing ? updated : r));
+                setEditing(null);
+              } else {
+                const created = await apiPost<Recipe>("/api/recipes", payload);
+                setRecipes([created, ...recipes]);
+                setCreating(false);
+              }
+              resetForm();
+            }catch(err){ console.error(err); alert(editing ? "Failed to update" : "Failed to create"); }
+          }}>{editing ? "Update" : "Save"}</button>
+          
+          {editing && (
+            <button 
+              onClick={()=>{
+                setEditing(null);
+                resetForm();
+              }} 
+              style={{marginLeft:8}}
+            >
+              Cancel
+            </button>
+          )}
         </div>
       )}
-      <ul>{recipes.filter(r=>r.title.toLowerCase().includes(q.toLowerCase())).map(r => (<li key={r.id}><a href={`/recipe/${r.id}`}>{r.title}</a></li>))}</ul>
+      <div style={{marginTop:20}}>
+        {recipes.filter(r=>r.title.toLowerCase().includes(q.toLowerCase())).map(r => (
+          <div key={r.id} style={{border:"1px solid #eee", padding:12, marginBottom:12, maxWidth:720}}>
+            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+              <div>
+                <h4 style={{margin:"0 0 4px 0"}}>
+                  <a href={`/recipe/${r.id}`} style={{textDecoration:"none", color:"#0066cc"}}>{r.title}</a>
+                </h4>
+                <div style={{fontSize:"0.9em", color:"#666"}}>
+                  {r.servings} serving{r.servings !== 1 ? 's' : ''}
+                  {r.prep_minutes && ` • ${r.prep_minutes}min prep`}
+                  {r.cook_minutes && ` • ${r.cook_minutes}min cook`}
+                  {r.cuisine && ` • ${r.cuisine}`}
+                  {r.meal_type && ` • ${r.meal_type}`}
+                </div>
+                {r.dietary_tags && r.dietary_tags.length > 0 && (
+                  <div style={{fontSize:"0.8em", color:"#888", marginTop:2}}>
+                    Tags: {r.dietary_tags.join(", ")}
+                  </div>
+                )}
+              </div>
+              <div>
+                {r.photo_url && (
+                  <img 
+                    src={r.photo_url} 
+                    alt={r.title} 
+                    style={{width:60, height:60, objectFit:"cover", borderRadius:4, marginRight:8}} 
+                  />
+                )}
+                <button 
+                  onClick={()=>{
+                    setEditing(r.id);
+                    setCreating(false);
+                    loadRecipe(r);
+                  }}
+                  style={{fontSize:"0.8em", padding:"4px 8px"}}
+                >
+                  Edit
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </main>
   );
 }

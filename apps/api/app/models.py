@@ -17,6 +17,7 @@ class Recipe(Base):
     meal_type = Column(String, nullable=True)
     dietary_tags = Column(JSON, nullable=False, default=list)
     notes = Column(String, nullable=True)
+    photo_url = Column(String, nullable=True)
     visibility = Column(String, nullable=False, default="private")
     public_token = Column(String, nullable=True, unique=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
