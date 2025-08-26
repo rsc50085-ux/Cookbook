@@ -131,7 +131,31 @@ export default function Library() {
   if (!user) return <p>Please <a href="/api/auth/login">log in</a>.</p>;
   return (
     <main style={{ padding: 24 }}>
-      <h2>Your Recipes</h2>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+        <h2 style={{ margin: 0 }}>Your Recipes</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {user && (
+            <span style={{ fontSize: "14px", color: "#666" }}>
+              Welcome, {user.name || user.email}
+            </span>
+          )}
+          <a 
+            href="/api/auth/logout" 
+            style={{ 
+              padding: "6px 12px", 
+              backgroundColor: "#dc3545", 
+              color: "white", 
+              textDecoration: "none", 
+              borderRadius: "4px", 
+              fontSize: "14px",
+              border: "none",
+              cursor: "pointer"
+            }}
+          >
+            Logout
+          </a>
+        </div>
+      </div>
       <div style={{ margin: "16px 0", padding: "16px", border: "1px solid #ddd", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
         <h3 style={{ margin: "0 0 12px 0", fontSize: "18px" }}>Search & Filter Recipes</h3>
         

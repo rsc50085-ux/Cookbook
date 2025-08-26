@@ -20,6 +20,28 @@ export default function RecipeView() {
   if (!r) return <p>Loading…</p>;
   return (
     <main style={{ padding: 24, maxWidth: 800 }}>
+      {user && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <span style={{ fontSize: "14px", color: "#666" }}>
+              {user.name || user.email}
+            </span>
+            <a 
+              href="/api/auth/logout" 
+              style={{ 
+                padding: "4px 8px", 
+                backgroundColor: "#dc3545", 
+                color: "white", 
+                textDecoration: "none", 
+                borderRadius: "4px", 
+                fontSize: "12px"
+              }}
+            >
+              Logout
+            </a>
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 20, marginBottom: 20 }}>
         <div style={{ flex: 1 }}>
           <h1 style={{ margin: "0 0 8px 0" }}>{r.title}</h1>
